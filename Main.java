@@ -26,11 +26,20 @@ public class Main {
         {0xe1,	0xf8,	0x98,	0x11,	0x69,	0xd9,	0x8e,	0x94,	0x9b,	0x1e,	0x87,	0xe9,	0xce,	0x55,	0x28,	0xdf},
         {0x8c,	0xa1,	0x89,	0x0d,	0xbf,	0xe6,	0x42,	0x68,	0x41,	0x99,	0x2d,	0x0f,	0xb0,	0x54,	0xbb,	0x16},
     };
+    public static int[][] mix_array =new int[][]{{2,3,1,1},{1,2,3,1},{1,1,2,3},{3,1,1,2}};
 
-
+    public static void printarr(int[][] array){
+        for(int i=0; i<4; i++){
+            for(int j=0; j<4; j++){
+                System.out.print(String.format("%x", array[i][j]) + "\t");
+            }
+            System.out.println();
+        }
+        System.out.println("----------------");
+    }
     public static void main(String[] args) throws FileNotFoundException {
         // write your code here
-        File key_file = new File("/Users/cisel/Desktop/CMPE494/src/com/company/key_file.txt");
+        File key_file = new File("key_file.txt");
 
         Scanner scan = new Scanner(key_file);
         String key = scan.nextLine();
@@ -50,8 +59,23 @@ public class Main {
             int hx = Integer.parseInt(hex, 16);
             key_words.get(i / 8)[(i / 2) % 4] = hx;
         }
-        generate_key(4, 1);
-    }
+        int sum[][] = new int[4][4];
+        int text[][] = messageBlockToArray("Two One Nine Two");
+        int[][] key_array = new int[][]{{w0[0],w1[0],w2[0],w3[0]},{w0[1],w1[1],w2[1],w3[1]},{w0[2],w1[2],w2[2],w3[2]},{w0[3],w1[3],w2[3],w3[3]}};
+        sum = addKey(text, key_array);
+        for(int i=1;i<=9;i++){
+            sum = byteSubstitution(sum);
+            sum = shiftRows(sum);
+            sum = mixColumns(sum);
+            sum = addKey(sum,generate_key(4, i));
+        }
+            sum = byteSubstitution(sum);
+            sum = shiftRows(sum);
+            sum = addKey(sum,generate_key(4, 10));
+            printarr(sum);
+
+            
+        }
 
 
     public static int [][] byteSubstitution(int [][] input){
@@ -61,14 +85,22 @@ public class Main {
             for(int j=0; j<4; j++){
                 int temp_X = input[i][j] / 16; // row axis in table
                 int temp_Y = input[i][j] % 16; // column axis in table
-                
+                //System.out.println(String.format("0x%08X", input[i][j]));
+
                 result[i][j] = lookup_table[temp_X][temp_Y];
             }
         }
         return result;
     }
-
-
+    public static int[][] addKey(int[][] text, int[][]key){
+        int[][] result = new int[4][4];
+        for(int i=0; i<4;i++){
+            for(int j=0;j<4;j++){
+                result[i][j]=text[i][j]^key[i][j];
+            }
+        }
+        return result;
+    }
     public static int [][] shiftRows(int [][] input){
         int [][] result = new int[4][4];
 
@@ -106,15 +138,41 @@ public class Main {
 
         for(int i=0; i<4; i++){
             for(int j=0; j<4; j++){
-                result[i][j] = message.charAt(i*4 + j);
+                result[j][i] = message.charAt(i*4 + j);
             }
         }
 
         return result;
     }
 
-
-
+    public static int times(int first,int second){
+        System.out.println();
+        if(first == 1){
+            return second;
+        }
+        else if(first == 2){
+            if(second<<1 >= 256){
+                return ((second<<1)^(0b11011))%256;
+            }
+            return ((second<<1));
+        }
+        else{
+            if(second<<1 >= 256){
+                return (((second<<1)^(0b11011))^second)%256;
+            }
+            return (((second<<1))^second);
+        }
+    }
+    public static int [][] mixColumns(int[][] param){
+        int temp[][] = new int[4][4];
+        for(int i = 0; i<4;i++){
+            for(int j=0;j<4;j++){
+                temp[i][j]= times(mix_array[i][0],param[0][j])^ times(mix_array[i][1],param[1][j])^times(mix_array[i][2],param[2][j])^times(mix_array[i][3],param[3][j]);
+            }
+        }
+        return temp;
+    }
+    
     /*public static int generate_key(int round, String key, int len) throws FileNotFoundException {
         int[] r_con= {1,2,4,8,16,32,64, 128, 27, 54, 108};
         if(key.length() != len){
@@ -177,11 +235,19 @@ public class Main {
     }*/
 
     public static int[] substitude (int[] x) {
-        int[] a = {183, 90, 157, 133};
-        return a;
+        int [] result = new int[4];
+
+        for(int i=0; i<4; i++){
+                int temp_X = x[i] / 16; // row axis in table
+                int temp_Y = x[i] % 16; // column axis in table
+                
+                result[i] = lookup_table[temp_X][temp_Y];
+            }
+        
+        return result;
     }
 
-    public static void generate_key(int words, int round) { //words = 4 for 128-bit key, 6 for 192 bit key, 8 for 256 bit key
+    public static int[][] generate_key(int words, int round) { //words = 4 for 128-bit key, 6 for 192 bit key, 8 for 256 bit key
 
         int[] old_key_part;
         int[] old_key_part_to_modify;
@@ -221,11 +287,13 @@ public class Main {
             }
             key_words.add(new_key_part);
         }
-
-        for(int k= round*4; k < (round+1)*4; k++){
+        /*for(int k= round*4; k < (round+1)*4; k++){
             for(int j=0; j<4; j++){
-                System.out.print(Integer.toHexString(key_words.get(k)[j]));
+                System.out.print(Integer.toHexString(key_words.get(k)[j])+" ");
             }
         }
+        System.out.println("--");*/
+        return new int[][]{{key_words.get(round*4)[0],key_words.get(round*4+1)[0],key_words.get(round*4+2)[0],key_words.get(round*4+3)[0]},{key_words.get(round*4)[1],key_words.get(round*4+1)[1],key_words.get(round*4+2)[1],key_words.get(round*4+3)[1]},{key_words.get(round*4)[2],key_words.get(round*4+1)[2],key_words.get(round*4+2)[2],key_words.get(round*4+3)[2]},{key_words.get(round*4)[3],key_words.get(round*4+1)[3],key_words.get(round*4+2)[3],key_words.get(round*4+3)[3]}};
+
     }
 }
