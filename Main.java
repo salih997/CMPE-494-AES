@@ -469,17 +469,18 @@ public class Main {
 
         return result;
     }
-
+    
     public static int[][] generate_key(int words, int round) { //words = 4 for 128-bit key, 6 for 192 bit key, 8 for 256 bit key
 
         int[] old_key_part;
         int[] old_key_part_to_modify;
-        int[] r_con= {1,2,4,8,16,32,64, 128, 27, 54, 108, 216, 171, 77};
+        int[] r_con= {0,1,2,4,8,16,32,64, 128, 27, 54, 108, 216, 171, 77};
 
         for(int i = round*4; i< (round+1)*4; i++ ){
             int[] new_key_part = new int[4];
             if(i < words){
                 new_key_part = key_words.get(i);
+                continue;
             }
             else if(i >= words && i%words == 0){
                 int[] temp_arr = new int[4];
@@ -488,13 +489,13 @@ public class Main {
                     temp_arr[(k+3)%4] = old_key_part_to_modify[k];
                 }
                 temp_arr = substitude(temp_arr);
-                temp_arr[0] = temp_arr[0] ^ r_con[round-1];
+                temp_arr[0] = temp_arr[0] ^ r_con[i/words];
                 old_key_part = key_words.get(i-words);
                 for(int k=0; k < 4; k++){
                     new_key_part[k] = temp_arr[k] ^ old_key_part[k];
                 }
             }
-            else if(i >= words && words> 6 && i%words == 4){
+            else if(i >= words && words > 6 && i%words == 4){
                 old_key_part = key_words.get(i-words);
                 old_key_part_to_modify = substitude(key_words.get(i-1));
                 for(int k=0; k < 4; k++){
@@ -510,12 +511,7 @@ public class Main {
             }
             key_words.add(new_key_part);
         }
-        /*for(int k= round*4; k < (round+1)*4; k++){
-            for(int j=0; j<4; j++){
-                System.out.print(Integer.toHexString(key_words.get(k)[j])+" ");
-            }
-        }
-        System.out.println("--");*/
+
         int idx = 4*round;
         int[][] round_key = new int[][]{key_words.get(idx), key_words.get(idx+1), key_words.get(idx+2), key_words.get(idx+3)};
         return transpose(round_key);
