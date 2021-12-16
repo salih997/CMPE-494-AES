@@ -45,6 +45,7 @@ public class Main {
             {0x17,	0x2b,	0x04,	0x7e,	0xba,	0x77,	0xd6,	0x26,	0xe1,	0x69,	0x14,	0x63,	0x55,	0x21,	0x0c,	0x7d},
     };
     public static int[][] mix_array =new int[][]{{2,3,1,1},{1,2,3,1},{1,1,2,3},{3,1,1,2}};
+    public static int[][] inverse_mix_array =new int[][]{{0xe,0xb,0xd,0x9},{0x9,0xe,0xb,0xd},{0xd,0x9,0xe,0xb},{0xb,0xd,0x9,0xe}};
 
     public static void printarr(int[][] array){
         for(int i=0; i<4; i++){
@@ -216,23 +217,63 @@ public class Main {
 
         return result;
     }
-
+    public static int bitwise_operation(int number,int shift){
+        int sum = number;
+        if(shift==0){
+            return number;
+        }
+        if(shift==1){
+            if(number<<1 >= 256){
+                return ((number<<1)^(0b11011))%256;
+            }
+            return ((number<<1));
+        }
+        if(shift==2){
+            sum = number<<2;
+            if(sum >=512){
+                sum=((sum)^(0b110110))%512;
+            }
+            if(sum>=256){
+                return ((sum)^(0b110110))%256;
+            }
+            return sum;
+        }
+        if(shift==3){
+            sum = number<<3;
+            if(sum >=1024){
+                sum=((sum)^(0b1101100))%1024;
+            }
+            if(sum >=512){
+                sum=((sum)^(0b110110))%512;
+            }
+            if(sum>=256){
+                return ((sum)^(0b110110))%256;
+            }
+            return sum;
+        }
+        return 0;
+    }
     public static int times(int first,int second){
-        //System.out.println();
         if(first == 1){
             return second;
         }
         else if(first == 2){
-            if(second<<1 >= 256){
-                return ((second<<1)^(0b11011))%256;
-            }
-            return ((second<<1));
+            return bitwise_operation(second, 1);
+        }
+        else if(first==3){
+            return bitwise_operation(second,1)^second;
+        }
+        else if(first == 9){
+            return bitwise_operation(second,3)^second;
+        }
+        else if(first == 11){
+            return bitwise_operation(second,3)^bitwise_operation(second,1)^second;
+        }
+        else if(first==13){
+            return bitwise_operation(second,3)^bitwise_operation(second,2)^second;
         }
         else{
-            if(second<<1 >= 256){
-                return (((second<<1)^(0b11011))^second)%256;
-            }
-            return (((second<<1))^second);
+            return bitwise_operation(second,3)^bitwise_operation(second,2)^bitwise_operation(second,1);
         }
     }
     public static int [][] mixColumns(int[][] param){
@@ -245,6 +286,16 @@ public class Main {
         return temp;
     }
 
+    public static int [][] inverseMixColumns(int[][] param){
+        int temp[][] = new int[4][4];
+        for(int i = 0; i<4;i++){
+            for(int j=0;j<4;j++){
+                temp[i][j]= times(inverse_mix_array[i][0],param[0][j])^ times(inverse_mix_array[i][1],param[1][j])^times(inverse_mix_array[i][2],param[2][j])^times(inverse_mix_array[i][3],param[3][j]);
+            }
+        }
+        return temp;
+    }
+    
     public static int[][] transpose(int[][] matrix){
         int[][] transposed = new int[4][4];
         for(int i=0; i<4; i++){
