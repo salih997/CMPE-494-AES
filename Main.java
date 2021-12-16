@@ -58,12 +58,27 @@ public class Main {
     }
     public static void main(String[] args) throws FileNotFoundException {
         // write your code here
-        File key_file = new File("/Users/cisel/Desktop/CMPE494/src/com/company/key_file.txt");
-
+        File key_file = new File("key_file.txt");
         Scanner scan = new Scanner(key_file);
-        String key = scan.nextLine();
+
+        //key_length = args[0];
 
         int key_length = 128;
+
+        //encrypt(scan, key_length);
+
+
+        decrypt(scan, key_length);
+
+        
+
+
+    }
+
+    public static void encrypt(Scanner scan, int key_length){    
+        String key = scan.nextLine();
+
+
         int word = key_length/32;
         int number_of_hex = key_length/4;
         int round = 0;
@@ -106,9 +121,85 @@ public class Main {
         sum = addKey(sum,generate_key(word, round));
         printarr(sum);
 
-
     }
 
+    public static void decrypt(Scanner scan, int key_length){
+        String key = scan.nextLine();
+
+        int word = key_length/32;
+        int number_of_hex = key_length/4;
+        int round = 0;
+        if(key_length==128){
+            round = 10;
+        }
+        else if(key_length==192){
+            round = 12;
+        }
+        else if(key_length==256){
+            round = 14;
+        }
+
+        int[][] init_vectors = new int[word][4];
+
+        for(int i = 0; i< word; i++){
+            key_words.add(init_vectors[i]);
+        }
+
+        for (int i = 0; i < number_of_hex; i = i + 2) {  //dividing key to the words, words to the bytes
+            String hex = key.substring(i, i + 2);
+            int hx = Integer.parseInt(hex, 16);
+            key_words.get(i / 8)[(i / 2) % 4] = hx;
+        }
+
+        int sum[][] = new int[4][4];
+        //int text[][] = messageBlockToArray("Two One Nine Two");
+        int text[][] = {
+            {0x29, 0xc3, 0x50, 0x5f},
+            {0x57, 0x14, 0x20, 0xf6},
+            {0x40, 0x22, 0x99, 0xb3},
+            {0x1a, 0x02, 0xd7, 0x3a}
+        };
+        text = transpose(text);
+        int[][] key_array = new int[][]{init_vectors[0], init_vectors[1], init_vectors[2], init_vectors[3]};
+        key_array = transpose(key_array);
+
+        for(int i=1; i<=round; i++){
+            generate_key(word, i);
+        }
+
+        int idx = 4*round;
+        int[][] round_key = new int[][]{key_words.get(idx), key_words.get(idx+1), key_words.get(idx+2), key_words.get(idx+3)};
+        sum = addKey(text, transpose(round_key));
+
+        printarr(sum);
+
+        for(int i=round-1; i>=1; i--){
+
+            sum = shiftRowsDec(sum);
+            System.out.println("SHROW");
+            printarr(sum);
+            sum = byteSubstitutionDec(sum);
+            System.out.println("BYTESUB");
+            printarr(sum);
+            idx = 4*i;
+            round_key = new int[][]{key_words.get(idx), key_words.get(idx+1), key_words.get(idx+2), key_words.get(idx+3)};
+            sum = addKey(sum, transpose(round_key));
+            //System.out.println("ROUNDKEY");
+            //printarr(transpose(round_key));
+            //System.out.println("ADDKEY");
+            printarr(sum);
+            sum = inverseMixColumns(sum);
+            System.out.println("MIXCOL");
+            printarr(sum);
+
+        }
+        sum = shiftRowsDec(sum);
+        sum = byteSubstitutionDec(sum);
+        sum = addKey(sum, key_array);
+        
+        printarr(sum);
+
+    }
 
     public static int [][] byteSubstitution(int [][] input){
         int [][] result = new int[4][4];
@@ -234,7 +325,7 @@ public class Main {
                 sum=((sum)^(0b110110))%512;
             }
             if(sum>=256){
-                return ((sum)^(0b110110))%256;
+                return ((sum)^(0b11011))%256;
             }
             return sum;
         }
@@ -247,7 +338,7 @@ public class Main {
                 sum=((sum)^(0b110110))%512;
             }
             if(sum>=256){
-                return ((sum)^(0b110110))%256;
+                return ((sum)^(0b11011))%256;
             }
             return sum;
         }
