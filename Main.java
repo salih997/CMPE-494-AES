@@ -6,6 +6,14 @@ import java.util.Arrays;
 import java.util.Scanner;
 public class Main {
 
+    /**
+     * Argümanları aldım
+     * Şu sırayla geleceklerini varsayıyorum
+     * java AES(0) -e(1)/-d(1) keyfile(2) inputfile(3)
+     * eğer 192, 256 bitlik keyler kullanılmak istenirse de
+     * java AES(0) -e(1)/-d(1) -len256(2)/-len192(2) keyfile(3) inputfile(4) şeklinde geleceğini varsaydım. (Yanlarındaki sayılar argüman indexleri)
+     */
+
     public static ArrayList<int[]> key_words = new ArrayList<int[]>();
 
     public static int[][] lookup_table = {
@@ -57,21 +65,32 @@ public class Main {
         System.out.println("----------------");
     }
     public static void main(String[] args) throws FileNotFoundException {
-        // write your code here
-        File key_file = new File("key_file.txt");
+        int key_length;
+        String key;
+        String input_file;
+        if(args.length>4){ //with AES mode -len256 or -len192
+            if(args[2].equals("-len192")){
+                key_length = 192;
+            }
+            else{
+                key_length = 256;
+            }
+            key= args[3];
+            input_file = args[4];
+        }
+        else { //Default case, 128 bit key
+            key_length = 128;
+            String key = args[2];
+            String input_file = args[3];
+        }
+        File key_file = new File(key);
         Scanner scan = new Scanner(key_file);
-
-        //key_length = args[0];
-
-        int key_length = 128;
-
-        //encrypt(scan, key_length);
-
-
-        decrypt(scan, key_length);
-
-        
-
+        if(args[1].equals("-e"){
+            encrypt(scan, key_length);
+        }
+        else{
+            decrypt(scan, key_length);
+        }
 
     }
 
