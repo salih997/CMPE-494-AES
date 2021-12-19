@@ -1,17 +1,15 @@
 package com.company;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.FileWriter;
+import java.io.FileOutputStream; 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
-public class Main {
+public class AES {
 
     /**
-     * Argümanları aldım
-     * Şu sırayla geleceklerini varsayıyorum
-     * java AES(0) -e(1)/-d(1) keyfile(2) inputfile(3)
-     * eğer 192, 256 bitlik keyler kullanılmak istenirse de
-     * java AES(0) -e(1)/-d(1) -len256(2)/-len192(2) keyfile(3) inputfile(4) şeklinde geleceğini varsaydım. (Yanlarındaki sayılar argüman indexleri)
      */
 
     public static ArrayList<int[]> key_words = new ArrayList<int[]>();
@@ -64,40 +62,119 @@ public class Main {
         }
         System.out.println("----------------");
     }
-    public static void main(String[] args) throws FileNotFoundException {
+    public static void main(String[] args) throws FileNotFoundException, IOException {
+        long start = System.nanoTime();
+
         int key_length;
         String key;
         String input_file;
-        if(args.length>4){ //with AES mode -len256 or -len192
-            if(args[2].equals("-len192")){
-                key_length = 192;
+        boolean mode;
+        if(args.length>3 && args.length<=5){ //with AES mode -len256 or -len192
+            key= args[1];
+            input_file = args[2];
+            if(args[3].equals("-len")){
+                if(args[4].equals("192")){
+                    key_length = 192;
+                }
+                else{
+                    key_length = 256;
+                }
+                mode=false;
             }
             else{
-                key_length = 256;
+                if(args[4].equals("ebc")){
+                    mode = false;
+                }
+                else{
+                    mode=true;
+                }
+                key_length = 128;
             }
-            key= args[3];
-            input_file = args[4];
         }
+        else if(args.length>6){
+            key= args[1];
+            input_file = args[2];
+                if(args[4].equals("192")){
+                    key_length = 192;
+                }
+                else{
+                    key_length = 256;
+                }
+                if(args[5].equals("-mode")){
+                    if(args[6].equals("ebc")){
+                        mode = false;
+                    }
+                    else{
+                        mode=true;
+                    }
+                }
+                else{
+                    mode=false;
+                }
+            
+        }
+
         else { //Default case, 128 bit key
             key_length = 128;
-            String key = args[2];
-            String input_file = args[3];
+            key = args[1];
+            input_file = args[2];
+            mode=false;
         }
         File key_file = new File(key);
         Scanner scan = new Scanner(key_file);
-        if(args[1].equals("-e"){
-            encrypt(scan, key_length);
+        File inp = new File(input_file);
+        String keystring = scan.nextLine();
+        Scanner input_scan = new Scanner(inp);
+        int[][] last_arr = new int[4][4];
+        if(mode){
+            for (int i = 0; i < 8; i = i + 2) {  //dividing key to the words, words to the bytes
+                String hex = keystring.substring(i, i + 2);
+                int hx = Integer.parseInt(hex, 16);
+                last_arr[0][i/2]=hx;
+                last_arr[1][i/2]=hx;
+                last_arr[2][i/2]=hx;
+                last_arr[3][i/2]=hx;
+            }
+            last_arr = transpose(last_arr);
+        }
+        if(args[0].equals("e")){
+            File output = new File(input_file+".enc");
+                output.createNewFile();
+            
+            FileWriter  output_writer = new FileWriter (output);
+            
+
+            while(input_scan.hasNextLine()){
+                String str = input_scan.nextLine();
+                last_arr = encrypt(keystring, key_length , str,output_writer,mode,last_arr);
+            }
+            output_writer.close();
         }
         else{
-            decrypt(scan, key_length);
+            File output = new File(input_file+".dec");
+            output.createNewFile();
+            
+            FileWriter  output_writer = new FileWriter (output);
+            while(input_scan.hasNextLine()){
+                String str = input_scan.nextLine();
+                decrypt(keystring, key_length , str,output_writer,mode,last_arr);
+                int[][] temp = new int[4][4];
+                for (int i = 0; i < 32; i = i + 2) {  //dividing key to the words, words to the bytes
+                    String hex = str.substring(i, i + 2);
+                    int hx = Integer.parseInt(hex, 16);
+                    temp[i/8][(i/2)%4] = hx;
+                }
+                last_arr = transpose(temp);
+            }
+            output_writer.close();
         }
+
+        long end = System.nanoTime();
+        System.out.println(end-start); // prints PT1M3.553S
 
     }
 
-    public static void encrypt(Scanner scan, int key_length){    
-        String key = scan.nextLine();
-
-
+    public static int[][] encrypt(String key, int key_length,String str, FileWriter output_writer,boolean mode,int[][] last_arr) throws IOException{    
         int word = key_length/32;
         int number_of_hex = key_length/4;
         int round = 0;
@@ -109,22 +186,38 @@ public class Main {
         }
         else if(key_length==256){
             round = 14;
-        }
+        } 
 
         int[][] init_vectors = new int[word][4];
 
         for(int i = 0; i< word; i++){
             key_words.add(init_vectors[i]);
         }
+        System.out.println(key);
+        System.out.println(number_of_hex);
 
         for (int i = 0; i < number_of_hex; i = i + 2) {  //dividing key to the words, words to the bytes
             String hex = key.substring(i, i + 2);
             int hx = Integer.parseInt(hex, 16);
             key_words.get(i / 8)[(i / 2) % 4] = hx;
         }
-
+        int temp[][] = new int[4][4];
+        for (int i = 0; i < 32; i = i + 2) {  //dividing key to the words, words to the bytes
+            String hex = str.substring(i, i + 2);
+            int hx = Integer.parseInt(hex, 16);
+            temp[i/8][(i/2)%4] = hx;
+        }
+        int text[][] = new int[4][4];
+        text = transpose(temp);
+        if(mode){
+            for(int i=0;i<4;i++){
+                for(int j=0;j<4;j++){
+                    text[i][j] = last_arr[i][j]^text[i][j];
+                }
+            }
+        }
+        
         int sum[][] = new int[4][4];
-        int text[][] = messageBlockToArray("Two One Nine Two");
         int[][] key_array = new int[][]{init_vectors[0], init_vectors[1], init_vectors[2], init_vectors[3]};
         key_array = transpose(key_array);
         sum = addKey(text, key_array);
@@ -138,12 +231,19 @@ public class Main {
         sum = byteSubstitution(sum);
         sum = shiftRows(sum);
         sum = addKey(sum,generate_key(word, round));
-        printarr(sum);
+        for(int i = 0; i< 4;i++){
+            for( int j = 0; j<4;j++){
+                output_writer.write(String.format("%02X", sum[j][i]));
+            }
+        }
+        output_writer.write("\n");
+        key_words.clear();
+        return sum;
+        //printarr(sum);
 
     }
 
-    public static void decrypt(Scanner scan, int key_length){
-        String key = scan.nextLine();
+    public static void decrypt(String key, int key_length,String str, FileWriter output_writer,boolean mode,int[][] last_arr) throws IOException{
 
         int word = key_length/32;
         int number_of_hex = key_length/4;
@@ -170,15 +270,18 @@ public class Main {
             key_words.get(i / 8)[(i / 2) % 4] = hx;
         }
 
+        int temp[][] = new int[4][4];
+        for (int i = 0; i < 32; i = i + 2) {  //dividing key to the words, words to the bytes
+            String hex = str.substring(i, i + 2);
+            int hx = Integer.parseInt(hex, 16);
+            temp[i/8][(i/2)%4] = hx;
+        }
+        int text[][] = new int[4][4];
+        text = transpose(temp);
+
         int sum[][] = new int[4][4];
         //int text[][] = messageBlockToArray("Two One Nine Two");
-        int text[][] = {
-            {0x29, 0xc3, 0x50, 0x5f},
-            {0x57, 0x14, 0x20, 0xf6},
-            {0x40, 0x22, 0x99, 0xb3},
-            {0x1a, 0x02, 0xd7, 0x3a}
-        };
-        text = transpose(text);
+
         int[][] key_array = new int[][]{init_vectors[0], init_vectors[1], init_vectors[2], init_vectors[3]};
         key_array = transpose(key_array);
 
@@ -190,34 +293,42 @@ public class Main {
         int[][] round_key = new int[][]{key_words.get(idx), key_words.get(idx+1), key_words.get(idx+2), key_words.get(idx+3)};
         sum = addKey(text, transpose(round_key));
 
-        printarr(sum);
 
         for(int i=round-1; i>=1; i--){
 
             sum = shiftRowsDec(sum);
-            System.out.println("SHROW");
             printarr(sum);
             sum = byteSubstitutionDec(sum);
-            System.out.println("BYTESUB");
             printarr(sum);
             idx = 4*i;
             round_key = new int[][]{key_words.get(idx), key_words.get(idx+1), key_words.get(idx+2), key_words.get(idx+3)};
             sum = addKey(sum, transpose(round_key));
+            printarr(sum);
             //System.out.println("ROUNDKEY");
             //printarr(transpose(round_key));
             //System.out.println("ADDKEY");
-            printarr(sum);
             sum = inverseMixColumns(sum);
-            System.out.println("MIXCOL");
             printarr(sum);
 
         }
         sum = shiftRowsDec(sum);
         sum = byteSubstitutionDec(sum);
         sum = addKey(sum, key_array);
-        
+        if(mode){
+            for(int i=0;i<4;i++){
+                for(int j=0;j<4;j++){
+                    sum[i][j] = last_arr[i][j]^sum[i][j];
+                }
+            }
+        }
+        for(int i = 0; i< 4;i++){
+            for( int j = 0; j<4;j++){
+                output_writer.write(String.format("%02X", sum[j][i]));
+            }
+        }
         printarr(sum);
-
+        output_writer.write("\n");
+        key_words.clear();
     }
 
     public static int [][] byteSubstitution(int [][] input){
