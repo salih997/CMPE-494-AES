@@ -17,7 +17,7 @@ Key File is a mandatory argument which represents path to the key file.
 
 	input_file
 	
-Key File is a mandatory argument which represents path to the input file.
+Input File is a mandatory argument which represents path to the input file.
 
 	-len 192/256 [optional]
 This is an optional argument, after -len flag 192 represents 192 bit key length and 256 represents 256 bit key length. If this option is not used default key length is 128 bit.
