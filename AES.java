@@ -9,9 +9,6 @@ import java.util.Arrays;
 import java.util.Scanner;
 public class AES {
 
-    /**
-     */
-
     public static ArrayList<int[]> key_words = new ArrayList<int[]>();
 
     public static int[][] lookup_table = {
@@ -68,7 +65,7 @@ public class AES {
         String key;
         String input_file;
         boolean mode;
-        if(args.length>3 && args.length<=5){ //with AES mode -len256 or -len192
+        if(args.length>3 && args.length<=5){        //with AES mode -len 256/192 or mode -ecb/cbc
             key= args[1];
             input_file = args[2];
             if(args[3].equals("-len")){
@@ -90,7 +87,7 @@ public class AES {
                 key_length = 128;
             }
         }
-        else if(args.length>6){
+        else if(args.length>6){         //With AES mode -len 256/192 and mode -ecb/cbc
             key= args[1];
             input_file = args[2];
                 if(args[4].equals("192")){
@@ -113,20 +110,23 @@ public class AES {
             
         }
 
-        else { //Default case, 128 bit key
+        else {          //Default case, 128 bit key, mode ebc
             key_length = 128;
             key = args[1];
             input_file = args[2];
             mode=false;
         }
+        
         File key_file = new File(key);
         Scanner scan = new Scanner(key_file);
-        File inp = new File(input_file);
         String keystring = scan.nextLine();
+        
+        File inp = new File(input_file);
         Scanner input_scan = new Scanner(inp);
-        int[][] last_arr = new int[4][4];
+       
+        int[][] last_arr = new int[4][4];           //This is an 'initilization vector' used in mode cbc
         if(mode){
-            for (int i = 0; i < 8; i = i + 2) {  //dividing key to the words, words to the bytes
+            for (int i = 0; i < 8; i = i + 2) {     //Initilization vector is the first word (32 bits) of the key, repeated 4 times
                 String hex = keystring.substring(i, i + 2);
                 int hx = Integer.parseInt(hex, 16);
                 last_arr[0][i/2]=hx;
@@ -136,29 +136,29 @@ public class AES {
             }
             last_arr = transpose(last_arr);
         }
+        
         if(args[0].equals("e")){
             File output = new File(input_file+".enc");
-                output.createNewFile();
-            
+            output.createNewFile();
             FileWriter  output_writer = new FileWriter (output);
-            
-
+          
             while(input_scan.hasNextLine()){
                 String str = input_scan.nextLine();
-                last_arr = encrypt(keystring, key_length , str,output_writer,mode,last_arr);
+                last_arr = encrypt(keystring, key_length, str,output_writer,mode,last_arr);
             }
             output_writer.close();
         }
+        
         else{
             File output = new File(input_file+".dec");
             output.createNewFile();
-            
             FileWriter  output_writer = new FileWriter (output);
+            
             while(input_scan.hasNextLine()){
                 String str = input_scan.nextLine();
                 decrypt(keystring, key_length , str,output_writer,mode,last_arr);
                 int[][] temp = new int[4][4];
-                for (int i = 0; i < 32; i = i + 2) {  //dividing key to the words, words to the bytes
+                for (int i = 0; i < 32; i = i + 2) {  //Initializes the part of cipher-text needed for decryption in mode cbc
                     String hex = str.substring(i, i + 2);
                     int hx = Integer.parseInt(hex, 16);
                     temp[i/8][(i/2)%4] = hx;
@@ -167,8 +167,6 @@ public class AES {
             }
             output_writer.close();
         }
-
-
     }
 
     public static int[][] encrypt(String key, int key_length,String str, FileWriter output_writer,boolean mode,int[][] last_arr) throws IOException{    
@@ -190,13 +188,13 @@ public class AES {
         for(int i = 0; i< word; i++){
             key_words.add(init_vectors[i]);
         }
-        for (int i = 0; i < number_of_hex; i = i + 2) {  //dividing key to the words, words to the bytes
+        for (int i = 0; i < number_of_hex; i = i + 2) {  //Places key to the matrix, dividing key to the words, words to the bytes
             String hex = key.substring(i, i + 2);
             int hx = Integer.parseInt(hex, 16);
             key_words.get(i / 8)[(i / 2) % 4] = hx;
         }
         int temp[][] = new int[4][4];
-        for (int i = 0; i < 32; i = i + 2) {  //dividing key to the words, words to the bytes
+        for (int i = 0; i < 32; i = i + 2) {            //Places text to the matrix, dividing text to the words, words to the bytes
             String hex = str.substring(i, i + 2);
             int hx = Integer.parseInt(hex, 16);
             temp[i/8][(i/2)%4] = hx;
@@ -285,14 +283,14 @@ public class AES {
             key_words.add(init_vectors[i]);
         }
 
-        for (int i = 0; i < number_of_hex; i = i + 2) {  //dividing key to the words, words to the bytes
+        for (int i = 0; i < number_of_hex; i = i + 2) {  //Places key to the matrix, dividing key to the words, words to the bytes
             String hex = key.substring(i, i + 2);
             int hx = Integer.parseInt(hex, 16);
             key_words.get(i / 8)[(i / 2) % 4] = hx;
         }
 
         int temp[][] = new int[4][4];
-        for (int i = 0; i < 32; i = i + 2) {  //dividing key to the words, words to the bytes
+        for (int i = 0; i < 32; i = i + 2) {             //Places text to the matrix, dividing text to the words, words to the bytes
             String hex = str.substring(i, i + 2);
             int hx = Integer.parseInt(hex, 16);
             temp[i/8][(i/2)%4] = hx;
@@ -579,11 +577,12 @@ public class AES {
         return result;
     }
     
+    //Generates the round key.
     public static int[][] generate_key(int words, int round) { //words = 4 for 128-bit key, 6 for 192 bit key, 8 for 256 bit key
 
         int[] old_key_part;
         int[] old_key_part_to_modify;
-        int[] r_con= {0,1,2,4,8,16,32,64, 128, 27, 54, 108, 216, 171, 77};
+        int[] r_con= {0,1,2,4,8,16,32,64, 128, 27, 54, 108, 216, 171, 77};          //round constants 
 
         for(int i = round*4; i< (round+1)*4; i++ ){
             int[] new_key_part = new int[4];
