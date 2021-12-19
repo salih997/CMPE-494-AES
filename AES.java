@@ -56,14 +56,13 @@ public class AES {
     public static void printarr(int[][] array){
         for(int i=0; i<4; i++){
             for(int j=0; j<4; j++){
-                System.out.print(String.format("%x", array[i][j]) + "\t");
+                System.out.print(String.format("%02X", array[i][j]) + "\t");
             }
             System.out.println();
         }
         System.out.println("----------------");
     }
     public static void main(String[] args) throws FileNotFoundException, IOException {
-        long start = System.nanoTime();
 
         int key_length;
         String key;
@@ -169,8 +168,6 @@ public class AES {
             output_writer.close();
         }
 
-        long end = System.nanoTime();
-        System.out.println(end-start); // prints PT1M3.553S
 
     }
 
@@ -193,9 +190,6 @@ public class AES {
         for(int i = 0; i< word; i++){
             key_words.add(init_vectors[i]);
         }
-        System.out.println(key);
-        System.out.println(number_of_hex);
-
         for (int i = 0; i < number_of_hex; i = i + 2) {  //dividing key to the words, words to the bytes
             String hex = key.substring(i, i + 2);
             int hx = Integer.parseInt(hex, 16);
@@ -215,22 +209,50 @@ public class AES {
                     text[i][j] = last_arr[i][j]^text[i][j];
                 }
             }
+            
+            System.out.println("AFTER DOING XOR OPERATION FOR CBC");
+            System.out.println();
+            printarr(text);
         }
         
         int sum[][] = new int[4][4];
         int[][] key_array = new int[][]{init_vectors[0], init_vectors[1], init_vectors[2], init_vectors[3]};
         key_array = transpose(key_array);
         sum = addKey(text, key_array);
-
+        System.out.println("ROUND 0 AFTER ADDING KEY");
+        System.out.println();
+        printarr(sum);
         for(int i=1;i<=round-1;i++){
             sum = byteSubstitution(sum);
+            System.out.println("ROUND "+i+" AFTER BYTE SUBSTITION");
+            System.out.println();
+            printarr(sum);
             sum = shiftRows(sum);
+            System.out.println("ROUND "+i+" AFTER SHIFTING ROWS");
+            System.out.println();
+            printarr(sum);
             sum = mixColumns(sum);
+            System.out.println("ROUND "+i+" AFTER MIXING COLUMNS");
+            System.out.println();
+            printarr(sum);
             sum = addKey(sum,generate_key(word, i));
+            System.out.println("ROUND "+i+" AFTER ADDING KEY");
+            System.out.println();
+            printarr(sum);
         }
         sum = byteSubstitution(sum);
+        System.out.println("ROUND "+round+" AFTER BYTE SUBSTITION");
+            System.out.println();
+            printarr(sum);
         sum = shiftRows(sum);
+        System.out.println("ROUND "+round+" AFTER SHIFTING ROWS");
+            System.out.println();
+            printarr(sum);
         sum = addKey(sum,generate_key(word, round));
+        System.out.println("ROUND "+round+" AFTER ADDING KEY");
+            System.out.println();
+            printarr(sum);
+
         for(int i = 0; i< 4;i++){
             for( int j = 0; j<4;j++){
                 output_writer.write(String.format("%02X", sum[j][i]));
@@ -239,7 +261,6 @@ public class AES {
         output_writer.write("\n");
         key_words.clear();
         return sum;
-        //printarr(sum);
 
     }
 
@@ -280,7 +301,6 @@ public class AES {
         text = transpose(temp);
 
         int sum[][] = new int[4][4];
-        //int text[][] = messageBlockToArray("Two One Nine Two");
 
         int[][] key_array = new int[][]{init_vectors[0], init_vectors[1], init_vectors[2], init_vectors[3]};
         key_array = transpose(key_array);
@@ -292,41 +312,61 @@ public class AES {
         int idx = 4*round;
         int[][] round_key = new int[][]{key_words.get(idx), key_words.get(idx+1), key_words.get(idx+2), key_words.get(idx+3)};
         sum = addKey(text, transpose(round_key));
-
+        System.out.println("ROUND 0 AFTER ADDING KEY");
+        System.out.println();
+        printarr(sum);
 
         for(int i=round-1; i>=1; i--){
-
             sum = shiftRowsDec(sum);
+            System.out.println("ROUND "+ (round-i) +" AFTER SHIFTING ROWS");
+            System.out.println();
             printarr(sum);
             sum = byteSubstitutionDec(sum);
+            System.out.println("ROUND "+ (round-i) +" AFTER BYTE SUBSTITION");
+            System.out.println();
             printarr(sum);
             idx = 4*i;
             round_key = new int[][]{key_words.get(idx), key_words.get(idx+1), key_words.get(idx+2), key_words.get(idx+3)};
             sum = addKey(sum, transpose(round_key));
+            System.out.println("ROUND "+ (round-i) +" AFTER ADDING KEY");
+            System.out.println();
             printarr(sum);
-            //System.out.println("ROUNDKEY");
-            //printarr(transpose(round_key));
-            //System.out.println("ADDKEY");
             sum = inverseMixColumns(sum);
+            System.out.println("ROUND "+ (round-i) +" AFTER MIXING COLUMNS");
+            System.out.println();
             printarr(sum);
-
         }
         sum = shiftRowsDec(sum);
+        System.out.println("ROUND "+round+" AFTER SHIFTING ROWS");
+        System.out.println();
+        printarr(sum);
+
         sum = byteSubstitutionDec(sum);
+        System.out.println("ROUND "+round+" AFTER BYTE SUBSTITION");
+        System.out.println();
+        printarr(sum);
+
         sum = addKey(sum, key_array);
+        System.out.println("ROUND "+round+" AFTER ADDING KEY");
+        System.out.println();
+        printarr(sum);
+
         if(mode){
             for(int i=0;i<4;i++){
                 for(int j=0;j<4;j++){
                     sum[i][j] = last_arr[i][j]^sum[i][j];
                 }
             }
+
+            System.out.println("AFTER DOING XOR OPERATION FOR CBC");
+            System.out.println();
+            printarr(sum);
         }
         for(int i = 0; i< 4;i++){
             for( int j = 0; j<4;j++){
                 output_writer.write(String.format("%02X", sum[j][i]));
             }
         }
-        printarr(sum);
         output_writer.write("\n");
         key_words.clear();
     }
@@ -338,7 +378,6 @@ public class AES {
             for(int j=0; j<4; j++){
                 int temp_X = input[i][j] / 16; // row axis in table
                 int temp_Y = input[i][j] % 16; // column axis in table
-                //System.out.println(String.format("0x%08X", input[i][j]));
 
                 result[i][j] = lookup_table[temp_X][temp_Y];
             }
@@ -526,70 +565,10 @@ public class AES {
         }
         return transposed;
     }
-    /*public static int generate_key(int round, String key, int len) throws FileNotFoundException {
-        int[] r_con= {1,2,4,8,16,32,64, 128, 27, 54, 108};
-        if(key.length() != len){
-            System.out.println("Invalid Key Length");
-        }
-
-        int[] w0 = new int[4];
-        int[] w1 = new int[4];
-        int[] w2 = new int[4];
-        int[] w3 = new int[4];
-
-        ArrayList<int[]> vectors = new ArrayList<>(){
-            {
-                add(w0);
-                add(w1);
-                add(w2);
-                add(w3);
-            }
-        };
-
-        for(int i=0; i < key.length(); i=i+2){  //dividing key to the words, words to the bytes
-            String hex = key.substring(i, i+2);
-            int hx = Integer.parseInt(hex, 16);
-            vectors.get(i / 8)[(i/2)%4] = hx;
-        }
-
-        int[] w4= new int[4];
-
-        //circular byte left shift
-        for(int i=0; i<4; i++){
-            int a = (i+3)%4;
-            System.out.println(a);
-            w4[i] = vectors.get(3)[(i+3)%4];
-        }
-
-        w4 = substitude(w4); //substitution
-
-        w4[0] = w4[0] ^ r_con[round-1]; //adding round constant
-
-        vectors.add(w4); // w4 = g(w3)
-
-        for(int i=0; i < 4; i++){
-            int[] new_w = new int[4];
-            for(int j=0; j<4; j++){
-                new_w[j] = vectors.get(i)[j] ^ vectors.get(i+4)[j];
-            }
-            vectors.add(new_w);
-        }
-
-        for(int i=0; i < vectors.size(); i++){
-            System.out.println(Arrays.toString(vectors.get(i)));
-        }
-
-        for(int i =5; i < vectors.size(); i++){
-            for(int j=0; j<vectors.get(i).length; j++){
-                System.out.print(Integer.toHexString(vectors.get(i)[j]));
-            }
-        }
-        return len;
-    }*/
+   
 
     public static int[] substitude (int[] x) {
         int [] result = new int[4];
-
         for(int i=0; i<4; i++){
             int temp_X = x[i] / 16; // row axis in table
             int temp_Y = x[i] % 16; // column axis in table
