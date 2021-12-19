@@ -77,7 +77,7 @@ public class AES {
                 mode=false;
             }
             else{
-                if(args[4].equals("ebc")){
+                if(args[4].equals("ecb")){
                     mode = false;
                 }
                 else{
@@ -96,7 +96,7 @@ public class AES {
                     key_length = 256;
                 }
                 if(args[5].equals("-mode")){
-                    if(args[6].equals("ebc")){
+                    if(args[6].equals("ecb")){
                         mode = false;
                     }
                     else{
@@ -109,7 +109,7 @@ public class AES {
             
         }
 
-        else {          //Default case, 128 bit key, mode ebc
+        else {          //Default case, 128 bit key, mode ecb
             key_length = 128;
             key = args[1];
             input_file = args[2];
